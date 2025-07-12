@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FACEVIDEOS - Descarga videos de Facebook</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ... (Todo tu CSS original, sin cambios, puedes copiarlo tal cual) ... */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fab fa-facebook"></i> FACEVIDEOS</h1>
+            <p>Descarga videos de Facebook en alta calidad directamente a tu dispositivo. Rápido, seguro y fácil de usar.</p>
+        </header>
+        
+        <div class="steps">
+            <div class="step">
+                <i class="fas fa-copy"></i>
+                <h3>Paso 1</h3>
+                <p>Copia el enlace del video de Facebook</p>
+            </div>
+            <div class="step">
+                <i class="fas fa-paste"></i>
+                <h3>Paso 2</h3>
+                <p>Pega el enlace en el campo de abajo</p>
+            </div>
+            <div class="step">
+                <i class="fas fa-download"></i>
+                <h3>Paso 3</h3>
+                <p>Descarga el video en tu calidad preferida</p>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="input-group">
+                <label for="fb-url">Pega el enlace del video de Facebook:</label>
+                <div class="url-input">
+                    <input type="url" id="fb-url" placeholder="https://www.facebook.com/watch/?v=..." required>
+                    <button id="download-btn">
+                        <i class="fas fa-search"></i> Buscar
+                    </button>
+                </div>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analizando el video, por favor espera...</p>
+            </div>
+            
+            <div class="result-container" id="result-container">
+                <div class="video-preview" id="video-preview">
+                    <!-- Imagen previa se llenará con JS -->
+                </div>
+                
+                <div class="video-info" id="video-info">
+                    <!-- Info del video (nombre, duración, etc), se llena con JS -->
+                </div>
+                
+                <h3>Opciones de descarga:</h3>
+                <div class="download-options" id="download-options">
+                    <!-- Botones de descarga generados dinámicamente -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="disclaimer">
+            <p><strong>Nota:</strong> Esta herramienta está diseñada para descargar videos públicos de Facebook. Por favor, respeta los derechos de autor y las políticas de privacidad al utilizar esta herramienta.</p>
+            <p>FACEVIDEOS no almacena ningún video en sus servidores y actúa como un servicio intermediario.</p>
+        </div>
+    </div>
+    
+    <script>
+        // Usa un API público de ejemplo. Para producción, crea tu propio backend.
+        async function getFacebookVideoLinks(fbUrl) {
+            // Ejemplo usando savefrom.net API pública (como demostración)
+            // En producción, utiliza tu propio backend.
+            // Este endpoint puede dejar de funcionar en cualquier momento (solo ejemplo educativo)
+            const apiUrl = `https://api.savieo.com/api/download?url=${encodeURIComponent(fbUrl)}`;
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error("No se pudo obtener información del video.");
+                const data = await response.json();
+                // data.video contiene un array de calidades
+                return data;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const downloadBtn = document.getElementById('download-btn');
+            const urlInput = document.getElementById('fb-url');
+            const resultContainer = document.getElementById('result-container');
+            const loading = document.getElementById('loading');
+            const downloadOptions = document.getElementById('download-options');
+            const videoInfo = document.getElementById('video-info');
+            const videoPreview = document.getElementById('video-preview');
+
+            // Oculta resultados al inicio
+            resultContainer.classList.remove('active');
+
+            downloadBtn.addEventListener('click', async function() {
+                const videoUrl = urlInput.value.trim();
+
+                // Validación básica de URL
+                if (!videoUrl) {
+                    alert('Por favor, ingresa una URL de video de Facebook');
+                    return;
+                }
+
+                if (!videoUrl.includes('facebook.com') && !videoUrl.includes('fb.watch')) {
+                    alert('Por favor, ingresa una URL válida de Facebook');
+                    return;
+                }
+
+                // Mostrar carga
+                loading.classList.add('active');
+                resultContainer.classList.remove('active');
+
+                // Obtener enlaces reales
+                const videoData = await getFacebookVideoLinks(videoUrl);
+
+                loading.classList.remove('active');
+
+                // Mostrar resultados o error
+                if (!videoData || !videoData.video || !videoData.video.length) {
+                    alert("No se pudo obtener el video. Intenta con otro enlace.");
+                    return;
+                }
+
+                // Llenar preview e info
+                videoPreview.innerHTML = '';
+                videoInfo.innerHTML = '';
+                let thumb = videoData.thumb || 'https://www.facebook.com/images/fb_icon_325x325.png';
+                videoPreview.innerHTML = `
+                    <img src="${thumb}" alt="Video preview" style="max-width:100%;max-height:100%;border-radius:8px;">
+                `;
+
+                // Si hay título y duración
+                let title = videoData.title || 'Video de Facebook';
+                let duration = videoData.duration ? `${Math.floor(videoData.duration/60)}:${('0'+(videoData.duration%60)).slice(-2)} min` : '';
+                videoInfo.innerHTML = `
+                    <h3>${title}</h3>
+                    <div class="video-details">
+                        <span><i class="far fa-clock"></i> ${duration}</span>
+                    </div>
+                `;
+
+                // Generar botones de descarga
+                downloadOptions.innerHTML = '';
+                videoData.video.forEach(v => {
+                    let label = v.quality || 'Desconocida';
+                    let size = v.size ? (v.size/1024/1024).toFixed(1) + ' MB' : '';
+                    downloadOptions.innerHTML += `
+                        <div class="download-option">
+                            <div class="option-header">
+                                <i class="fas fa-download"></i>
+                                <h4>${label}</h4>
+                            </div>
+                            <div class="option-details">
+                                <span>${v.format}</span>
+                                <span>${size}</span>
+                            </div>
+                            <a href="${v.url}" class="download-btn" target="_blank" download>
+                                <i class="fas fa-download"></i> Descargar
+                            </a>
+                        </div>
+                    `;
+                });
+
+                // Mostrar el contenedor de resultados
+                resultContainer.classList.add('active');
+                resultContainer.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+    </script>
+</body>
+</html>
